@@ -566,10 +566,20 @@ async function playlistItems(id, offset) {
     catch (e2) { throw [400, 403, 404].includes(e2.status) ? e : e2; }
   }
 }
-const playlistHint = (e) => (e && [403, 404].includes(e.status)
-  ? ['Spotify ne fournit pas la liste des titres de cette playlist. « Lire » et « Lecture aléatoire » fonctionnent.']
-  : [errText(e)]);
+// Règle Spotify (apps en mode développement) : seules les playlists dont on est propriétaire
+// ou collaborateur donnent accès à leurs titres. Les autres renvoient 403.
+const OTHERS_NOTE = 'Spotify ne montre aux apps que les titres de tes propres playlists. Celle-ci a été créée par quelqu’un d’autre : « Lire » fonctionne, ou ouvre-la dans Spotify.';
+const playlistHint = (e) => (e && [403, 404].includes(e.status) ? [OTHERS_NOTE] : [errText(e)]);
+const ownsPlaylist = (p) => !me || !me.id || !p.owner || p.owner.id === me.id || p.collaborative;
 function playlistScreen(p, total) {
+  if (!ownsPlaylist(p)) {
+    return list(p.name, [
+      { label: 'Lire', act: () => play({ context_uri: p.uri }) },
+      { label: 'Lecture aléatoire', act: () => shufflePlay(p.uri, total) },
+      { label: 'Ouvrir dans Spotify', act: () => { location.href = p.uri; } },
+      { head: true, note: true, label: OTHERS_NOTE },
+    ]);
+  }
   return list(p.name, [
     { label: 'Lire', act: () => play({ context_uri: p.uri }) },
     { label: 'Lecture aléatoire', act: () => shufflePlay(p.uri, total) },
