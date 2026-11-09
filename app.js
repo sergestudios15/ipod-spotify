@@ -9,10 +9,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (ms) => { ms = Math.max(0, ms | 0); const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const CFG = window.IPOD_CONFIG || {};
+// Préfixe de stockage : chaque copie de l'app garde ses propres réglages et sa connexion.
+const PFX = (CFG.storageKey || 'ipod') + '.';
 const LS = {
-  get(k, d) { try { const v = localStorage.getItem('ipod.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('ipod.' + k, JSON.stringify(v)); } catch {} },
-  del(k) { try { localStorage.removeItem('ipod.' + k); } catch {} },
+  get(k, d) { try { const v = localStorage.getItem(PFX + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(PFX + k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(PFX + k); } catch {} },
 };
 const params = new URLSearchParams(location.search);
 const DEMO = params.has('demo');
@@ -1011,7 +1014,9 @@ async function init() {
   setInterval(() => { const s = cur(); if (s && s.kind === 'now' && P.state && P.state.item) { if (P.state.is_playing && progress() > P.state.item.duration_ms + 800) poll(); renderNowBottom(); } }, 500);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') poll(); });
   window.addEventListener('resize', () => { rowPx = 0; render(); });
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register(CFG.swPath || 'sw.js').catch(() => {});
+  // Copie sans Client ID intégré : on ouvre la configuration dès le premier lancement.
+  if (!DEMO && !clientId() && !loggedIn()) setTimeout(openSetup, 400);
 }
 init();
 })();

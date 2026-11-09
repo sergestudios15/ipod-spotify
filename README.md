@@ -27,3 +27,8 @@ Télécommande Spotify façon iPod classique. C'est une web app installable (PWA
 node tools/serve.js
 ```
 Puis ouvrir http://127.0.0.1:5173/ (ajouter aussi `http://127.0.0.1:5173/` comme Redirect URI dans Spotify).
+
+## Copie « perso » (chacun son Client ID)
+Adresse : `https://sergestudios15.github.io/ipod-spotify/perso/`
+Pas de Client ID intégré : au premier lancement, l'app demande celui de l'app Spotify Developer de la personne (Redirect URI = l'adresse ci-dessus). Réglages et connexion séparés de la version principale.
+Elle réutilise `app.js` et `style.css` : après une modification de `index.html`, relancer `node tools/build-perso.js`.

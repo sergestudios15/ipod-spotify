@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>iPod Spotify perso</title>
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="iPod">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<main id="stage">
+  <div class="ipod" id="ipod">
+    <div class="shine"></div>
+    <div class="bezel">
+      <div class="screen" id="screen">
+        <div class="hdr">
+          <span class="hdr-play" id="hdrPlay"></span>
+          <span class="hdr-title" id="hdrTitle">iPod</span>
+          <span class="hdr-batt" id="hdrBatt"><i id="battFill"></i></span>
+        </div>
+        <div class="body" id="screenBody"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+    <div class="wheel" id="wheel" aria-label="Molette">
+      <span class="wlab top">MENU</span>
+      <span class="wlab right"><svg viewBox="0 0 24 14"><path d="M0 0l10 7-10 7zM11 0l10 7-10 7zM21 0h3v14h-3z"/></svg></span>
+      <span class="wlab left"><svg viewBox="0 0 24 14"><path d="M24 0l-10 7 10 7zM13 0L3 7l10 7zM0 0h3v14H0z"/></svg></span>
+      <span class="wlab bottom"><svg viewBox="0 0 26 14"><path d="M0 0l11 7-11 7zM15 0h4v14h-4zM22 0h4v14h-4z"/></svg></span>
+      <button class="center" id="center" aria-label="Sélectionner"></button>
+    </div>
+  </div>
+</main>
+
+<!-- Panneau de personnalisation -->
+<section class="sheet" id="themeSheet" hidden>
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <h2>Personnaliser l'iPod</h2>
+      <button class="x" data-close>✕</button>
+    </div>
+    <p class="sheet-sub">Thèmes prêts</p>
+    <div class="presets" id="presets"></div>
+    <p class="sheet-sub">Mes thèmes</p>
+    <div class="presets" id="myPresets"></div>
+    <p class="sheet-sub">Chaque partie</p>
+    <div class="parts" id="parts"></div>
+    <label class="row">Finition de la coque
+      <select id="finish">
+        <option value="gloss">Brillante</option>
+        <option value="matte">Mate</option>
+        <option value="metal">Métal brossé</option>
+      </select>
+    </label>
+    <div class="sheet-actions">
+      <button id="saveTheme">Enregistrer comme thème</button>
+      <button id="resetTheme" class="ghost">Réinitialiser</button>
+    </div>
+  </div>
+</section>
+
+<!-- Panneau de configuration Spotify -->
+<section class="sheet" id="setupSheet" hidden>
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <h2>Connexion à Spotify</h2>
+      <button class="x" data-close>✕</button>
+    </div>
+    <ol class="steps">
+      <li>Va sur <b>developer.spotify.com/dashboard</b> → <b>Create app</b>.</li>
+      <li>Dans <b>Redirect URI</b>, colle exactement :
+        <div class="copy"><code id="redirectUri"></code><button id="copyRedirect">Copier</button></div></li>
+      <li>Coche <b>Web API</b>, enregistre, puis copie le <b>Client ID</b>.</li>
+      <li>Si d'autres personnes utilisent ton app Spotify, ajoute leur email dans <b>User Management</b>.</li>
+    </ol>
+    <label class="row col">Client ID
+      <input id="clientIdInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex. 1a2b3c4d5e…">
+    </label>
+    <div class="sheet-actions">
+      <button id="saveClientId">Enregistrer et se connecter</button>
+    </div>
+    <p class="note">Il faut un compte Spotify Premium pour piloter la lecture.</p>
+  </div>
+</section>
+
+<script src="config.js"></script>
+<script src="../app.js"></script>
+</body>
+</html>
