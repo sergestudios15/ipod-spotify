@@ -126,6 +126,11 @@ body {
 .list li.sel.marquee .lbl span { display: inline-block; animation: marquee 7s linear 1s infinite; }
 @keyframes marquee { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--shift, 0)); } }
 .list li.head { font-size: 3.2cqw; font-weight: 700; opacity: .55; height: 5.4cqw; line-height: 5.4cqw; text-transform: uppercase; letter-spacing: .1em; }
+.list li.head.note {
+  height: auto; line-height: 1.3; white-space: normal; text-transform: none; letter-spacing: 0;
+  font-size: 3.5cqw; font-weight: 600; opacity: .7; padding-top: 1.4cqw; padding-bottom: 1.4cqw;
+}
+.list li.head.note .lbl { white-space: normal; }
 .list li .chk { width: 3.6cqw; text-align: center; }
 
 .scrollbar {

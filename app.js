@@ -214,7 +214,10 @@ async function ensureLoaded(s, more = false) {
   } catch (e) {
     s.error = e; s.loaded = true; s.more = false;
     if (e.auth) { s.loading = false; return showErr(e); }
+    // Écran avec des entrées fixes (« Lire »…) : on explique l'erreur au lieu d'une liste vide muette.
+    if (s.items.some(isSel)) (s.errorHint ? s.errorHint(e) : [errText(e)]).forEach((t) => s.items.push({ head: true, note: true, label: t }));
   }
+  if (s.loaded && !s.more && !s.error && s.baseItems && s.items.length === s.baseItems.length && s.emptyHint && s.items.some(isSel)) s.items.push({ head: true, note: true, label: s.emptyHint });
   s.loading = false;
   if (cur() === s) render();
 }
@@ -262,7 +265,7 @@ function renderList(s, target = body()) {
   let html = `<ul class="list${sb ? ' has-sb' : ''}">`;
   for (let i = s.top; i < Math.min(items.length, s.top + rows); i++) {
     const it = items[i];
-    if (it.head) { html += `<li class="head"><span class="lbl">${esc(val(it.label))}</span></li>`; continue; }
+    if (it.head) { html += `<li class="head${it.note ? ' note' : ''}"><span class="lbl">${esc(val(it.label))}</span></li>`; continue; }
     const sub = val(it.sub);
     html += `<li class="${i === s.sel ? 'sel' : ''}">` +
       (it.check !== undefined ? `<span class="chk">${val(it.check) ? '✓' : ''}</span>` : '') +
@@ -555,10 +558,17 @@ function playlistsScreen() {
 let playlistPath = null; // '/items' (API 2026) ou '/tracks' (ancienne)
 async function playlistItems(id, offset) {
   const q = { limit: 50, offset, additional_types: 'track,episode' };
-  if (playlistPath) return getPage(`/playlists/${id}${playlistPath}`, q);
-  try { const r = await getPage(`/playlists/${id}/items`, q); playlistPath = '/items'; return r; }
-  catch (e) { if (e.status === 404 || e.status === 403 || e.status === 400) { const r = await getPage(`/playlists/${id}/tracks`, q); playlistPath = '/tracks'; return r; } throw e; }
+  const first = playlistPath || '/items', other = first === '/items' ? '/tracks' : '/items';
+  try { const r = await getPage(`/playlists/${id}${first}`, q); playlistPath = first; return r; }
+  catch (e) {
+    if (![400, 403, 404].includes(e.status)) throw e;
+    try { const r = await getPage(`/playlists/${id}${other}`, q); playlistPath = other; return r; }
+    catch (e2) { throw [400, 403, 404].includes(e2.status) ? e : e2; }
+  }
 }
+const playlistHint = (e) => (e && [403, 404].includes(e.status)
+  ? ['Spotify ne fournit pas la liste des titres de cette playlist. « Lire » et « Lecture aléatoire » fonctionnent.']
+  : [errText(e)]);
 function playlistScreen(p, total) {
   return list(p.name, [
     { label: 'Lire', act: () => play({ context_uri: p.uri }) },
@@ -570,7 +580,7 @@ function playlistScreen(p, total) {
     const items = raw.map((x) => x && (x.track || x.item)).filter((t) => t && t.uri && !t.is_local)
       .map((t) => trackItem(t, () => play({ context_uri: p.uri, offset: { uri: t.uri } })));
     return { items, used: raw.length, more: !!r.next };
-  }, { empty: 'Playlist vide' });
+  }, { empty: 'Playlist vide', errorHint: playlistHint, emptyHint: 'Aucun titre affichable' });
 }
 
 /* Artistes */
@@ -1036,7 +1046,8 @@ function mock(path, method, b, q) {
     if (path === '/me/player/devices') return { devices: [st.device, ...(D.extra ? [D.extra] : []),{ id: 'd2', name: 'iPad', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd3', name: 'Galaxy Tab', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd4', name: 'Enceinte salon', type: 'Speaker', volume_percent: 30, is_active: false }] };
     if (path === '/me/playlists') return page(range(24, (i) => ({ id: 'pl' + i, uri: 'spotify:playlist:pl' + i, name: ['Chill du soir', 'Running', 'Années 80', 'Focus', 'Dîner entre amis', 'Road trip', 'Découvertes de la semaine', 'Électro FR'][i % 8] + (i >= 8 ? ' ' + i : ''), tracks: { total: 30 + i }, owner: { display_name: 'Démo' }, images: [{ url: art(i) }] })), q);
     let m;
-    if ((m = path.match(/^\/playlists\/(\w+)\/(items|tracks)$/))) return page(range(40, (i) => ({ track: dTrack(i) })), q);
+    if ((m = path.match(/^\/playlists\/(\w+)\/(items|tracks)$/)) && m[1] === 'pl6') throw Object.assign(new Error('Forbidden'), { status: 403 }); // « Découvertes de la semaine » : comme chez Spotify
+    if (m) return page(range(40, (i) => ({ track: dTrack(i) })), q);
     if (path === '/me/following') return { artists: { items: range(10, dArtist), next: null, cursors: {} } };
     if ((m = path.match(/^\/artists\/(\w+)\/top-tracks$/))) return { tracks: range(10, dTrack, 3) };
     if ((m = path.match(/^\/artists\/(\w+)\/albums$/))) return page(range(8, dAlbum, 1), q);
