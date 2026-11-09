@@ -9,7 +9,7 @@ let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 html = html
   .replace('<title>iPod Spotify</title>', '<title>iPod Spotify perso</title>')
   .replace(/href="(style\.css|icons\/)/g, 'href="../$1')
-  .replace('src="app.js"', 'src="../app.js"');
+  .replace(/src="app.js/, 'src="../app.js');
 if (!html.includes('../app.js') || !html.includes('../style.css')) throw new Error('index.html : chemins introuvables');
 fs.writeFileSync(path.join(out, 'index.html'), html);
 
