@@ -708,17 +708,51 @@ function devicesScreen() {
   const s = list('Appareils', [], async () => {
     const r = await api('/me/player/devices');
     const ds = (r && r.devices) || [];
+    s.devs = ds;
     const items = ds.map((d) => ({
       label: d.name, sub: devType(d.type), check: () => d.is_active,
       act: () => pickDevice(d),
     }));
-    items.push({ label: 'Actualiser', act: () => { s.items = []; s.loaded = false; s.count = 0; ensureLoaded(s); } });
-    items.push({ label: 'Ouvrir Spotify', act: openSpotify });
-    if (!ds.length) items.unshift({ head: true, label: 'Ouvre Spotify sur un appareil' });
+    // Le téléphone n'apparaît que si l'app Spotify y est ouverte : on la réveille puis on revient.
+    items.unshift({ label: thisDeviceLabel(), sub: 'réveiller', act: () => wakeLocal(s) });
+    items.push({ label: 'Actualiser', act: s.reload });
     return { items, more: false };
   });
+  s.reload = () => { s.items = []; s.loaded = false; s.count = 0; ensureLoaded(s); };
   return s;
 }
+function thisDeviceLabel() {
+  const ua = navigator.userAgent;
+  const tablet = /iPad|Tablet/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  return tablet ? 'Cette tablette' : 'Ce téléphone';
+}
+// Ouvre l'app Spotify de cet appareil (elle devient alors visible pour l'API),
+// puis, au retour dans l'iPod, sélectionne automatiquement ce nouvel appareil.
+let wake = null;
+function wakeLocal(s) {
+  wake = { ids: new Set((s.devs || []).map((d) => d.id)), at: Date.now() };
+  toast('Ouverture de Spotify… reviens ensuite ici', 3000);
+  if (DEMO) { D.extra = { id: 'dx', name: 'Ce téléphone (démo)', type: 'Smartphone', volume_percent: 70, is_active: false }; wake.at -= 2000; setTimeout(onReturn, 600); return; }
+  setTimeout(() => { location.href = (pendingPlay && pendingPlay.context_uri) || 'spotify:'; }, 300);
+}
+async function onReturn() {
+  if (!wake || Date.now() - wake.at < 1000) return;
+  const w = wake; wake = null;
+  toast('Recherche de cet appareil…', 4000);
+  for (let i = 0; i < 6; i++) {
+    try {
+      const r = await api('/me/player/devices');
+      const fresh = ((r && r.devices) || []).filter((d) => !w.ids.has(d.id) && /Smartphone|Tablet/.test(d.type));
+      if (fresh.length === 1) return pickDevice(fresh[0]);
+      if (fresh.length > 1) break;
+    } catch {}
+    await sleep(1200);
+  }
+  const s = cur();
+  if (s && s.reload) s.reload();
+  toast('Choisis ton appareil dans la liste', 3000);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onReturn(); });
 const devType = (t) => ({ Smartphone: 'Téléphone', Computer: 'Ordinateur', Tablet: 'Tablette', Speaker: 'Enceinte', TV: 'TV', CastVideo: 'Chromecast', CastAudio: 'Chromecast', Automobile: 'Voiture' }[t] || t || '');
 async function pickDevice(d) {
   if (pendingPlay) return play(pendingPlay, d.id);
@@ -726,7 +760,10 @@ async function pickDevice(d) {
     await api('/me/player', { method: 'PUT', body: { device_ids: [d.id], play: true } });
     toast('Lecture sur ' + d.name);
     pollSoon(700); setTimeout(() => { if (cur().title === 'Appareils') pop(); goNow(); }, 500);
-  } catch (e) { showErr(e); }
+  } catch (e) {
+    if (e.status === 404 && /Smartphone|Tablet/.test(d.type)) toast('Spotify est en veille sur cet appareil : choisis « ' + thisDeviceLabel() + ' »', 3500);
+    else showErr(e);
+  }
 }
 function openSpotify() { location.href = 'spotify:'; }
 
@@ -996,7 +1033,7 @@ function mock(path, method, b, q) {
     if (path === '/me/player/volume') { st.device.volume_percent = +q.volume_percent; return null; }
     if (path === '/me/player/shuffle') { st.shuffle_state = q.state === 'true'; return null; }
     if (path === '/me/player/repeat') { st.repeat_state = q.state; return null; }
-    if (path === '/me/player/devices') return { devices: [st.device, { id: 'd2', name: 'iPad', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd3', name: 'Galaxy Tab', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd4', name: 'Enceinte salon', type: 'Speaker', volume_percent: 30, is_active: false }] };
+    if (path === '/me/player/devices') return { devices: [st.device, ...(D.extra ? [D.extra] : []),{ id: 'd2', name: 'iPad', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd3', name: 'Galaxy Tab', type: 'Tablet', volume_percent: 40, is_active: false }, { id: 'd4', name: 'Enceinte salon', type: 'Speaker', volume_percent: 30, is_active: false }] };
     if (path === '/me/playlists') return page(range(24, (i) => ({ id: 'pl' + i, uri: 'spotify:playlist:pl' + i, name: ['Chill du soir', 'Running', 'Années 80', 'Focus', 'Dîner entre amis', 'Road trip', 'Découvertes de la semaine', 'Électro FR'][i % 8] + (i >= 8 ? ' ' + i : ''), tracks: { total: 30 + i }, owner: { display_name: 'Démo' }, images: [{ url: art(i) }] })), q);
     let m;
     if ((m = path.match(/^\/playlists\/(\w+)\/(items|tracks)$/))) return page(range(40, (i) => ({ track: dTrack(i) })), q);
