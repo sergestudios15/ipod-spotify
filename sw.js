@@ -1,6 +1,6 @@
 // Service worker : permet l'installation et un démarrage rapide.
 // Réseau d'abord (pour recevoir les mises à jour), cache en secours.
-const CACHE = 'ipod-v3';
+const CACHE = 'ipod-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

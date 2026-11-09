@@ -136,7 +136,7 @@ body {
 .scrollbar i { position: absolute; left: 0; right: 0; background: color-mix(in srgb, var(--hl-bg) 80%, black); border-radius: .4cqw; }
 
 .msg { padding: 4cqw; text-align: center; font-size: 4cqw; line-height: 1.35; display: grid; place-items: center; height: 100%; }
-.msg b { display: block; margin-bottom: 1.5cqw; }
+.msg > div > b:first-child { display: block; margin-bottom: 1.5cqw; }
 .spinner {
   width: 7cqw; height: 7cqw; margin: 0 auto 2cqw;
   border: .9cqw solid color-mix(in srgb, var(--scr-text) 20%, transparent);

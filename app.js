@@ -491,10 +491,32 @@ async function loadMe() { try { me = await api('/me'); LS.set('me', { id: me.id,
 const imgOf = (o) => (o && o.images && o.images[0] && o.images[0].url) || '';
 const artistsOf = (t) => (t && t.artists ? t.artists.map((a) => a.name).join(', ') : '');
 
+/* Installation sur l'écran d'accueil */
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; });
+window.addEventListener('appinstalled', () => { installEvt = null; toast('App installée ✓'); });
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const installItem = () => (standalone() ? [] : [{ label: 'Installer l’app', act: installApp }]);
+function installApp() {
+  if (installEvt) {
+    const ev = installEvt; installEvt = null;
+    ev.prompt();
+    return ev.userChoice.then((c) => { if (c.outcome !== 'accepted') installEvt = ev; }).catch(() => {});
+  }
+  const ua = navigator.userAgent;
+  let html;
+  if (/SamsungBrowser/i.test(ua)) html = '<b>Samsung Internet</b>Touche ≡ (en bas à droite) → <b>Ajouter la page à</b> → <b>Écran d’accueil</b>.';
+  else if (/iPhone|iPad/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document)) html = '<b>Safari</b>Touche Partager ⬆︎ → <b>Sur l’écran d’accueil</b> → <b>Ajouter</b>.';
+  else if (/Android/i.test(ua)) html = '<b>Chrome</b>Touche ⋮ (en haut à droite) → <b>Ajouter à l’écran d’accueil</b> → <b>Installer</b>.<br><br>Pas de ⋮ ? Ouvre le lien dans Chrome.';
+  else html = '<b>Ordinateur</b>Clique sur l’icône d’installation à droite de la barre d’adresse.';
+  push({ kind: 'msg', title: 'Installer', html });
+}
+
 function rootMenu() {
   if (!loggedIn()) {
     return list('iPod', [
       { label: 'Se connecter à Spotify', act: login },
+      ...installItem(),
       { label: 'Essayer en démo', act: () => { location.href = redirectUri() + '?demo'; } },
       { label: 'Personnaliser', chev: true, act: openTheme },
       { label: 'Réglages', chev: true, act: () => push(settingsScreen()) },
@@ -510,6 +532,7 @@ function rootMenu() {
     { label: 'Jam', chev: true, act: () => push(jamScreen()) },
     { label: 'Appareils', chev: true, act: () => push(devicesScreen()) },
     { label: 'Mélanger mes titres likés', act: shuffleLiked },
+    ...installItem(),
     { label: 'Personnaliser', chev: true, act: openTheme },
     { label: 'Réglages', chev: true, act: () => push(settingsScreen()) },
     { label: 'En cours', chev: true, act: goNow },
